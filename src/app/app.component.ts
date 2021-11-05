@@ -15,9 +15,14 @@ export class AppComponent implements OnInit, OnDestroy {
   users!: User[] | undefined;
   rooms!: RoomInfo[] | undefined;
 
-  audioCtl!: HTMLAudioElement | undefined;
+  audioCtl: HTMLAudioElement = new Audio();
+  remoteAudioCtl: HTMLAudioElement = new Audio();
+
+  context: AudioContext = new AudioContext();    // Audio context
+  buf!: AudioBuffer;        // Audio buffer
 
   localPeerConnection!: RTCPeerConnection;
+  iceCandidatesArray: RTCIceCandidateInit[] = [];
 
   userForm = new FormGroup({
     username: new FormControl('')
@@ -90,6 +95,30 @@ export class AppComponent implements OnInit, OnDestroy {
       console.log('{on:UserJoinedRoom}');
       console.log(data);
     });
+
+    this._hubConnection.on('IceCandidateResult', (candidate) => {
+      console.log('{on:IceCandidateResult}');
+      console.log('Adicionando ICE candidate');
+      console.log(candidate);
+      const iceInit = <RTCIceCandidateInit>candidate;
+      if (this.localPeerConnection.connectionState != 'connected') {
+        console.log('Adicionando candidate na lista para inserir após conexão');
+        this.iceCandidatesArray.push(iceInit);
+      } else {
+        this.addIceCandidate(candidate);
+      }
+    });
+  }
+
+  public addIceCandidate(candidate: RTCIceCandidateInit): void {
+    this.localPeerConnection.addIceCandidate(candidate)
+      .then(() => {
+        console.log('ICE candidate adicionado');
+      })
+      .catch((e) => {
+        console.log('Erro ao adicionar ICE candidate');
+        console.log(e);
+      });
   }
 
   public createConnection(): void {
@@ -144,16 +173,24 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   public async createRTCPeerConnection(): Promise<void> {
-    console.log('Criando PeerConnection do cliente');
-    this.localPeerConnection = new RTCPeerConnection();
+    const servers = <RTCIceServer[]>[{ urls: 'stun:stun.l.google.com:19302' }];
+    const config = <RTCConfiguration>{ iceServers: servers };
 
-    const userMedias = await this.getUserMedia();
+    console.log('Criando PeerConnection do cliente');
+
+    this.localPeerConnection = new RTCPeerConnection();
+    this.localPeerConnection.setConfiguration(config)
+
+    const localStream = await this.getUserMedia();
     console.log('Midias adquiridas com sucesso');
 
-    userMedias.getTracks().forEach(track => {
+    localStream.getTracks().forEach(track => {
       console.log("Midia: " + track.kind + " adicionada");
-      this.localPeerConnection.addTrack(track);
-    })
+      this.localPeerConnection.addTrack(track, localStream);
+    });
+
+    const audio = <HTMLAudioElement>document.getElementById('audioCtl');
+    //audio.srcObject = localStream;
   }
 
   public registerRTCEventHandlers(): void {
@@ -165,6 +202,16 @@ export class AppComponent implements OnInit, OnDestroy {
 
     this.localPeerConnection.oniceconnectionstatechange = () => {
       console.log("oniceconnectionstatechange: " + this.localPeerConnection.iceConnectionState);
+      if (this.localPeerConnection.connectionState == 'connected') {
+        if (this.iceCandidatesArray.length > 0) {
+          console.log('Adicionando ICE candidates que estavam aguardando a conexão');
+          this.iceCandidatesArray.forEach((c) => {
+            this.addIceCandidate(c);
+          })
+          // esvazia 
+          this.iceCandidatesArray = [];
+        }
+      }
     }
 
     this.localPeerConnection.onsignalingstatechange = () => {
@@ -172,7 +219,6 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     this.localPeerConnection.onicecandidate = async (event) => {
-
       if (event.candidate) {
         console.log('Novo IceCandidate:');
         console.log(event.candidate.candidate);
@@ -183,9 +229,55 @@ export class AppComponent implements OnInit, OnDestroy {
 
     this.localPeerConnection.ontrack = (event) => {
       console.log("ontrack: " + event.track.kind);
-      this.audioCtl.srcObject = this.audioCtl?.srcObject ?? event.streams[0] : undefined;
-    }
+      const audio = <HTMLAudioElement>document.getElementById('remoteAudioCtl');
+      audio.srcObject = event.streams[0];
+      // audio.play();
+    };
+
+    this.localPeerConnection.ondatachannel = (event) => {
+      console.log('ondatachannel');
+      console.log(event.channel);
+      const dataChannel = event.channel;
+
+      dataChannel.onopen = () => {
+        console.log('DataChannel Open');
+      };
+
+      dataChannel.onclose = () => {
+        console.log('DataChannel Close');
+      };
+
+      dataChannel.onmessage = (event) => {
+        console.log('Mensagem recebida do datachannel');
+        console.log(event);
+        console.log(event.data);
+        //this.playByteArray(event.data);
+      };
+    };
   }
+
+  public playByteArray(byteArray: any): void {
+    var arrayBuffer = new ArrayBuffer(byteArray.length);
+    var bufferView = new Uint8Array(arrayBuffer);
+    for (let i = 0; i < byteArray.length; i++) {
+      bufferView[i] = byteArray[i];
+    }
+
+    this.context.decodeAudioData(arrayBuffer, (buffer) => {
+        this.buf = buffer;
+        this.play();
+    });
+  }
+
+  public play(): void {
+    // Create a source node from the buffer
+    var source = this.context.createBufferSource();
+    source.buffer = this.buf;
+    // Connect to the final output node (the speakers)
+    source.connect(this.context.destination);
+    // Play immediately
+    source.start(0);
+}
 
   public getServerOffer(): void {
     this._hubConnection.invoke('GetServerOffer')
@@ -209,9 +301,10 @@ export class AppComponent implements OnInit, OnDestroy {
             console.log('Enviando resposta ao servidor');
             console.log('SDP: ' + this.localPeerConnection.localDescription?.sdp);
             //this.localPeerConnection.localDescription.type = 'answer'; // XUNXO ALERT
-            this._hubConnection.invoke('SetRemoteDescription', {sdp: this.localPeerConnection.localDescription?.sdp, type: 0});
+            this._hubConnection.invoke('SetRemoteDescription', { sdp: this.localPeerConnection.localDescription?.sdp, type: 0 });
           });
       });
+
   }
 }
 

@@ -86,6 +86,9 @@
     </table>
   </div>
 
+  <audio controls autoplay="autoplay" id="audioCtl"></audio>
+  <audio controls autoplay="autoplay" id="remoteAudioCtl"></audio>
+
   <div *ngIf="me && me.Room">
     <h2>Sala</h2>
     <table>
@@ -94,8 +97,6 @@
         <td>{{user.Username}}</td>
       </tr>
     </table>
-
-    <audio controls autoplay="autoplay" id="audioCtl" [(ngModel)]="audioCtl"></audio>
     <button (click)="startCall(me.Room.Id)">Chamar</button>
   </div>
 </div>
