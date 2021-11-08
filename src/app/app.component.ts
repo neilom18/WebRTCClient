@@ -1,4 +1,3 @@
-import { THIS_EXPR } from '@angular/compiler/src/output/output_ast';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { HubConnection, HubConnectionBuilder } from '@aspnet/signalr';
@@ -124,7 +123,7 @@ export class AppComponent implements OnInit, OnDestroy {
   public createConnection(): void {
     console.log('Iniciada conexão com o signalR na url: https://localhost:5001/rtc');
     this._hubConnection = new HubConnectionBuilder()
-      .withUrl('https://localhost:5001/rtc')
+      .withUrl('http://localhost:5000/rtc')
       .build();
   }
 
@@ -178,8 +177,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
     console.log('Criando PeerConnection do cliente');
 
-    this.localPeerConnection = new RTCPeerConnection();
-    this.localPeerConnection.setConfiguration(config)
+    this.localPeerConnection = new RTCPeerConnection(undefined);
+    //this.localPeerConnection.setConfiguration(config);
 
     const localStream = await this.getUserMedia();
     console.log('Midias adquiridas com sucesso');
