@@ -17,7 +17,7 @@ export class AppComponent implements OnInit, OnDestroy {
   audioCtl: HTMLAudioElement = new Audio();
   remoteAudioCtl: HTMLAudioElement = new Audio();
 
-  context: AudioContext = new AudioContext();    // Audio context
+  //context: AudioContext = new AudioContext();    // Audio context
   buf!: AudioBuffer;        // Audio buffer
 
   localPeerConnection!: RTCPeerConnection;
@@ -123,7 +123,7 @@ export class AppComponent implements OnInit, OnDestroy {
   public createConnection(): void {
     console.log('Iniciada conexão com o signalR na url: https://localhost:5001/rtc');
     this._hubConnection = new HubConnectionBuilder()
-      .withUrl('http://localhost:5000/rtc')
+      .withUrl('https://192.168.137.1:5001/rtc')
       .build();
   }
 
@@ -172,13 +172,63 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   public async createRTCPeerConnection(): Promise<void> {
-    const servers = <RTCIceServer[]>[{ urls: 'stun:stun.l.google.com:19302' }];
+    const servers = <RTCIceServer[]>[
+      {
+        urls: 'stun:stun1.l.google.com:19302'
+      },
+      {
+        urls: 'stun:stun2.l.google.com:19302'
+      },
+      {
+        urls: 'stun:stun3.l.google.com:19302'
+      },
+      {
+        urls: 'stun:stun4.l.google.com:19302'
+      },
+      {
+        urls: 'stun:stun.ekiga.net'
+      },
+      {
+        urls: 'stun:stun.ideasip.com'
+      },
+      {
+        urls: 'turn:numb.viagenie.ca',
+        credential: 'muazkh',
+        username: 'webrtc@live.com',
+        credentialType: 'password'
+      },
+      {
+        urls: "turn:192.158.29.39:3478?transport=udp",
+        credential: "JZEOEt2V3Qb0y27GRntt2u2PAYA=",
+        username: "28224511:1379330808",
+        credentialType: 'password'
+      },
+      {
+        urls: "turn:192.158.29.39:3478?transport=tcp",
+        credential: "JZEOEt2V3Qb0y27GRntt2u2PAYA=",
+        username: "28224511:1379330808",
+        credentialType: 'password'
+      },
+      {
+        urls: "turn:turn.bistri.com:80",
+        credential: "homeo",
+        username: "homeo",
+        credentialType: 'password'
+      },
+      {
+        urls: "turn:turn.anyfirewall.com:443?transport=tcp",
+        credential: "webrtc",
+        username: "webrtc",
+        credentialType: 'password'
+      }
+    ];
+
     const config = <RTCConfiguration>{ iceServers: servers };
 
     console.log('Criando PeerConnection do cliente');
 
-    this.localPeerConnection = new RTCPeerConnection(undefined);
-    //this.localPeerConnection.setConfiguration(config);
+    this.localPeerConnection = new RTCPeerConnection(config);
+    this.localPeerConnection.setConfiguration(config);
 
     const localStream = await this.getUserMedia();
     console.log('Midias adquiridas com sucesso');
@@ -197,6 +247,11 @@ export class AppComponent implements OnInit, OnDestroy {
 
     this.localPeerConnection.onicegatheringstatechange = () => {
       console.log("onicegatheringstatechange: " + this.localPeerConnection.iceGatheringState);
+      if (this.localPeerConnection.iceGatheringState == 'complete') {
+        this.iceCandidatesArray.forEach((c) => {
+          this.addIceCandidate(c);
+        });
+      }
     }
 
     this.localPeerConnection.oniceconnectionstatechange = () => {
@@ -204,11 +259,11 @@ export class AppComponent implements OnInit, OnDestroy {
       if (this.localPeerConnection.connectionState == 'connected') {
         if (this.iceCandidatesArray.length > 0) {
           console.log('Adicionando ICE candidates que estavam aguardando a conexão');
-          this.iceCandidatesArray.forEach((c) => {
-            this.addIceCandidate(c);
-          })
-          // esvazia 
-          this.iceCandidatesArray = [];
+          // this.iceCandidatesArray.forEach((c) => {
+          //   this.addIceCandidate(c);
+          // })
+          // // esvazia 
+          // this.iceCandidatesArray = [];
         }
       }
     }
@@ -255,28 +310,28 @@ export class AppComponent implements OnInit, OnDestroy {
     };
   }
 
-  public playByteArray(byteArray: any): void {
-    var arrayBuffer = new ArrayBuffer(byteArray.length);
-    var bufferView = new Uint8Array(arrayBuffer);
-    for (let i = 0; i < byteArray.length; i++) {
-      bufferView[i] = byteArray[i];
-    }
+  //   public playByteArray(byteArray: any): void {
+  //     var arrayBuffer = new ArrayBuffer(byteArray.length);
+  //     var bufferView = new Uint8Array(arrayBuffer);
+  //     for (let i = 0; i < byteArray.length; i++) {
+  //       bufferView[i] = byteArray[i];
+  //     }
 
-    this.context.decodeAudioData(arrayBuffer, (buffer) => {
-        this.buf = buffer;
-        this.play();
-    });
-  }
+  //     this.context.decodeAudioData(arrayBuffer, (buffer) => {
+  //         this.buf = buffer;
+  //         this.play();
+  //     });
+  //   }
 
-  public play(): void {
-    // Create a source node from the buffer
-    var source = this.context.createBufferSource();
-    source.buffer = this.buf;
-    // Connect to the final output node (the speakers)
-    source.connect(this.context.destination);
-    // Play immediately
-    source.start(0);
-}
+  //   public play(): void {
+  //     // Create a source node from the buffer
+  //     var source = this.context.createBufferSource();
+  //     source.buffer = this.buf;
+  //     // Connect to the final output node (the speakers)
+  //     source.connect(this.context.destination);
+  //     // Play immediately
+  //     source.start(0);
+  // }
 
   public getServerOffer(): void {
     this._hubConnection.invoke('GetServerOffer')
