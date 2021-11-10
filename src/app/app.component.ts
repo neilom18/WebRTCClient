@@ -123,7 +123,7 @@ export class AppComponent implements OnInit, OnDestroy {
   public createConnection(): void {
     console.log('Iniciada conexão com o signalR na url: https://localhost:5001/rtc');
     this._hubConnection = new HubConnectionBuilder()
-      .withUrl('https://192.168.137.1:5001/rtc')
+      .withUrl('https://192.168.13.135:5001/rtc')
       .build();
   }
 
@@ -223,7 +223,7 @@ export class AppComponent implements OnInit, OnDestroy {
       }
     ];
 
-    const config = <RTCConfiguration>{ iceServers: servers };
+    const config = <RTCConfiguration>{ iceServers: servers, iceCandidatePoolSize: 15 };
 
     console.log('Criando PeerConnection do cliente');
 
@@ -237,9 +237,6 @@ export class AppComponent implements OnInit, OnDestroy {
       console.log("Midia: " + track.kind + " adicionada");
       this.localPeerConnection.addTrack(track, localStream);
     });
-
-    const audio = <HTMLAudioElement>document.getElementById('audioCtl');
-    //audio.srcObject = localStream;
   }
 
   public registerRTCEventHandlers(): void {
@@ -252,7 +249,7 @@ export class AppComponent implements OnInit, OnDestroy {
           this.addIceCandidate(c);
         });
       }
-    }
+    };
 
     this.localPeerConnection.oniceconnectionstatechange = () => {
       console.log("oniceconnectionstatechange: " + this.localPeerConnection.iceConnectionState);
@@ -266,11 +263,11 @@ export class AppComponent implements OnInit, OnDestroy {
           // this.iceCandidatesArray = [];
         }
       }
-    }
+    };
 
     this.localPeerConnection.onsignalingstatechange = () => {
       console.log("onsignalingstatechange: " + this.localPeerConnection.signalingState);
-    }
+    };
 
     this.localPeerConnection.onicecandidate = async (event) => {
       if (event.candidate) {
@@ -285,7 +282,7 @@ export class AppComponent implements OnInit, OnDestroy {
       console.log("ontrack: " + event.track.kind);
       const audio = <HTMLAudioElement>document.getElementById('remoteAudioCtl');
       audio.srcObject = event.streams[0];
-      // audio.play();
+      audio.play();
     };
 
     this.localPeerConnection.ondatachannel = (event) => {
@@ -308,30 +305,19 @@ export class AppComponent implements OnInit, OnDestroy {
         //this.playByteArray(event.data);
       };
     };
+
+    this.localPeerConnection.onnegotiationneeded = (event) => {
+      console.warn('{localPeerConnection.onnegotiationneeded}');
+      this.localPeerConnection.createOffer()
+      .then((offer) => {
+        return this.localPeerConnection.setLocalDescription(offer);
+      })
+      .then((offer) => {
+        console.log(offer);
+      })
+      .catch((e) => console.error(e));
+    };
   }
-
-  //   public playByteArray(byteArray: any): void {
-  //     var arrayBuffer = new ArrayBuffer(byteArray.length);
-  //     var bufferView = new Uint8Array(arrayBuffer);
-  //     for (let i = 0; i < byteArray.length; i++) {
-  //       bufferView[i] = byteArray[i];
-  //     }
-
-  //     this.context.decodeAudioData(arrayBuffer, (buffer) => {
-  //         this.buf = buffer;
-  //         this.play();
-  //     });
-  //   }
-
-  //   public play(): void {
-  //     // Create a source node from the buffer
-  //     var source = this.context.createBufferSource();
-  //     source.buffer = this.buf;
-  //     // Connect to the final output node (the speakers)
-  //     source.connect(this.context.destination);
-  //     // Play immediately
-  //     source.start(0);
-  // }
 
   public getServerOffer(): void {
     this._hubConnection.invoke('GetServerOffer')
