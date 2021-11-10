@@ -31,68 +31,82 @@ export class AppComponent implements OnInit, OnDestroy {
     roomName: new FormControl('')
   });
 
+  servers = <RTCIceServer[]>[
+    {
+      urls: 'stun:stun1.l.google.com:19302'
+    },      
+    {
+      urls: "turn:turn.anyfirewall.com:443?transport=tcp",
+      credential: "webrtc",
+      username: "webrtc",
+      credentialType: 'password'
+    }
+  ];
+
+  config = <RTCConfiguration>{ iceServers: this.servers };
+
   ngOnInit(): void {
     this.createConnection();
     this.startConnection();
     this.subscribeForHubEvents();
-    this.createRTCPeerConnection()
-      .then(() => {
-        console.log('PeerConnection local criada com sucesso!')
-        this.registerRTCEventHandlers();
-      });
+    // this.createRTCPeerConnection()
+    //   .then(() => {
+    //     //console.log('PeerConnection local criada com sucesso!')
+    //     this.registerRTCEventHandlers();
+    //   });
   }
 
   ngOnDestroy(): void {
     this._hubConnection.stop()
       .then(() => {
-        console.log('Removendo a conexão com o signalR');
+        //console.log('Removendo a conexão com o signalR');
       });
   }
 
   public subscribeForHubEvents(): void {
     this._hubConnection.on('UpdateRooms', (data) => {
-      console.log('{on:UpdateRooms}');
-      console.log(data);
+      //      console.log('{on:UpdateRooms}');
+      //    console.log(data);
       this.rooms = <RoomInfo[]>(JSON.parse(data));
     });
 
     this._hubConnection.on('UpdateUsers', (data) => {
-      console.log('{on:UpdateUsers}');
-      console.log(data);
+      // console.log('{on:UpdateUsers}');
+      // console.log(data);
       this.users = <User[]>(JSON.parse(data));
       const me = this.users.find(u => u.Id == this.me?.Id);
       this.me = me;
     });
 
     this._hubConnection.on('UserCreated', (data) => {
-      console.log('{on:UserCreated}');
-      console.log(data);
+      // console.log('{on:UserCreated}');
+      // console.log(data);
       this.me = <User>(JSON.parse(data));
     });
 
     this._hubConnection.on('UserExited', (data) => {
-      console.log('{on:UserExited}');
-      console.log(data);
+      // console.log('{on:UserExited}');
+      // console.log(data);
     });
 
     this._hubConnection.on('UserExitedRoom', (data) => {
-      console.log('{on:UserExitedRoom}');
-      console.log(data);
+      // console.log('{on:UserExitedRoom}');
+      // console.log(data);
     });
 
     this._hubConnection.on('ExitedRoom', (data) => {
-      console.log('{on:ExitedRoom}');
-      console.log(data);
+      // console.log('{on:ExitedRoom}');
+      // console.log(data);
     });
 
     this._hubConnection.on('JoinedRoom', (data) => {
-      console.log('{on:JoinedRoom}');
-      console.log(data);
+      // console.log('{on:JoinedRoom}');
+      // console.log(data);
     });
 
     this._hubConnection.on('UserJoinedRoom', (data) => {
-      console.log('{on:UserJoinedRoom}');
-      console.log(data);
+      // console.log('{on:UserJoinedRoom}');
+      // console.log(data);
     });
 
     this._hubConnection.on('IceCandidateResult', (candidate) => {
@@ -121,7 +135,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   public createConnection(): void {
-    console.log('Iniciada conexão com o signalR na url: https://localhost:5001/rtc');
+    //console.log('Iniciada conexão com o signalR na url: https://localhost:5001/rtc');
     this._hubConnection = new HubConnectionBuilder()
       .withUrl('https://192.168.13.135:5001/rtc')
       .build();
@@ -130,7 +144,7 @@ export class AppComponent implements OnInit, OnDestroy {
   public startConnection(): void {
     this._hubConnection.start()
       .then(() => {
-        console.log('Iniciada conexão com o signalR');
+        //console.log('Iniciada conexão com o signalR');
       })
       .catch((e) => {
         console.log('Erro ao iniciar a conexão com o signalR: ' + e);
@@ -139,7 +153,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   public createUser(): void {
     const username = this.userForm.value['username'];
-    console.log('Criando usuário:' + username);
+    // console.log('Criando usuário:' + username);
     this._hubConnection.invoke('CreateUser', username);
   }
 
@@ -149,9 +163,10 @@ export class AppComponent implements OnInit, OnDestroy {
     this._hubConnection.invoke('CreateRoom', roomName);
   }
 
-  public joinRoom(roomId: string): void {
+  public async joinRoom(roomId: string): Promise<void> {
     console.log('Entrando na sala: ' + roomId);
-    // TODO: CHAMAR O GET OFFER DO SERVIDOR
+    await this.createRTCPeerConnection()
+    this.registerRTCEventHandlers();
     this._hubConnection.invoke('JoinRoom', roomId)
       .then(() => {
         this.getServerOffer();
@@ -159,88 +174,37 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   public leaveRoom(roomId: string): void {
-    console.log('Saindo da sala: ' + roomId);
+    //console.log('Saindo da sala: ' + roomId);
     this._hubConnection.invoke('LeaveRoom', roomId);
   }
 
   public startCall(roomId: string): void {
-    console.log('Saindo da sala: ' + roomId);
+    //console.log('Saindo da sala: ' + roomId);
   }
 
   public async getUserMedia(): Promise<MediaStream> {
     return await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
   }
 
-  public async createRTCPeerConnection(): Promise<void> {
-    const servers = <RTCIceServer[]>[
-      {
-        urls: 'stun:stun1.l.google.com:19302'
-      },
-      {
-        urls: 'stun:stun2.l.google.com:19302'
-      },
-      {
-        urls: 'stun:stun3.l.google.com:19302'
-      },
-      {
-        urls: 'stun:stun4.l.google.com:19302'
-      },
-      {
-        urls: 'stun:stun.ekiga.net'
-      },
-      {
-        urls: 'stun:stun.ideasip.com'
-      },
-      {
-        urls: 'turn:numb.viagenie.ca',
-        credential: 'muazkh',
-        username: 'webrtc@live.com',
-        credentialType: 'password'
-      },
-      {
-        urls: "turn:192.158.29.39:3478?transport=udp",
-        credential: "JZEOEt2V3Qb0y27GRntt2u2PAYA=",
-        username: "28224511:1379330808",
-        credentialType: 'password'
-      },
-      {
-        urls: "turn:192.158.29.39:3478?transport=tcp",
-        credential: "JZEOEt2V3Qb0y27GRntt2u2PAYA=",
-        username: "28224511:1379330808",
-        credentialType: 'password'
-      },
-      {
-        urls: "turn:turn.bistri.com:80",
-        credential: "homeo",
-        username: "homeo",
-        credentialType: 'password'
-      },
-      {
-        urls: "turn:turn.anyfirewall.com:443?transport=tcp",
-        credential: "webrtc",
-        username: "webrtc",
-        credentialType: 'password'
-      }
-    ];
-
-    const config = <RTCConfiguration>{ iceServers: servers, iceCandidatePoolSize: 15 };
+  public async createRTCPeerConnection(): Promise<void> {   
+    
 
     console.log('Criando PeerConnection do cliente');
 
-    this.localPeerConnection = new RTCPeerConnection(config);
-    this.localPeerConnection.setConfiguration(config);
+    this.localPeerConnection = new RTCPeerConnection(this.config);
+    //this.localPeerConnection.setConfiguration(config);
 
     const localStream = await this.getUserMedia();
-    console.log('Midias adquiridas com sucesso');
+    //console.log('Midias adquiridas com sucesso');
 
     localStream.getTracks().forEach(track => {
-      console.log("Midia: " + track.kind + " adicionada");
+      //console.log("Midia: " + track.kind + " adicionada");
       this.localPeerConnection.addTrack(track, localStream);
     });
   }
 
   public registerRTCEventHandlers(): void {
-    console.log('Registrando eventos de RTC');
+    //console.log('Registrando eventos de RTC');
 
     this.localPeerConnection.onicegatheringstatechange = () => {
       console.log("onicegatheringstatechange: " + this.localPeerConnection.iceGatheringState);
@@ -253,14 +217,15 @@ export class AppComponent implements OnInit, OnDestroy {
 
     this.localPeerConnection.oniceconnectionstatechange = () => {
       console.log("oniceconnectionstatechange: " + this.localPeerConnection.iceConnectionState);
+
       if (this.localPeerConnection.connectionState == 'connected') {
         if (this.iceCandidatesArray.length > 0) {
           console.log('Adicionando ICE candidates que estavam aguardando a conexão');
-          // this.iceCandidatesArray.forEach((c) => {
-          //   this.addIceCandidate(c);
-          // })
-          // // esvazia 
-          // this.iceCandidatesArray = [];
+          this.iceCandidatesArray.forEach((c) => {
+            this.addIceCandidate(c);
+          })
+          // esvazia 
+          this.iceCandidatesArray = [];
         }
       }
     };
@@ -309,13 +274,13 @@ export class AppComponent implements OnInit, OnDestroy {
     this.localPeerConnection.onnegotiationneeded = (event) => {
       console.warn('{localPeerConnection.onnegotiationneeded}');
       this.localPeerConnection.createOffer()
-      .then((offer) => {
-        return this.localPeerConnection.setLocalDescription(offer);
-      })
-      .then((offer) => {
-        console.log(offer);
-      })
-      .catch((e) => console.error(e));
+        .then((offer) => {
+          return this.localPeerConnection.setLocalDescription(offer);
+        })
+        .then((offer) => {
+          console.log(offer);
+        })
+        .catch((e) => console.error(e));
     };
   }
 
