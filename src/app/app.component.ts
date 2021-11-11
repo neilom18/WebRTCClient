@@ -34,7 +34,7 @@ export class AppComponent implements OnInit, OnDestroy {
   servers = <RTCIceServer[]>[
     {
       urls: 'stun:stun1.l.google.com:19302'
-    },      
+    },
     {
       urls: "turn:turn.anyfirewall.com:443?transport=tcp",
       credential: "webrtc",
@@ -114,16 +114,17 @@ export class AppComponent implements OnInit, OnDestroy {
       console.log('Adicionando ICE candidate');
       console.log(candidate);
       const iceInit = <RTCIceCandidateInit>candidate;
-      if (this.localPeerConnection.connectionState != 'connected') {
+      //if (this.localPeerConnection.connectionState != 'connected') {
         console.log('Adicionando candidate na lista para inserir após conexão');
         this.iceCandidatesArray.push(iceInit);
-      } else {
-        this.addIceCandidate(candidate);
-      }
+      // } else {
+      //   this.addIceCandidate(candidate);
+      // }
     });
   }
 
   public addIceCandidate(candidate: RTCIceCandidateInit): void {
+    if (!candidate.candidate) return;
     this.localPeerConnection.addIceCandidate(candidate)
       .then(() => {
         console.log('ICE candidate adicionado');
@@ -186,9 +187,7 @@ export class AppComponent implements OnInit, OnDestroy {
     return await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
   }
 
-  public async createRTCPeerConnection(): Promise<void> {   
-    
-
+  public async createRTCPeerConnection(): Promise<void> {
     console.log('Criando PeerConnection do cliente');
 
     this.localPeerConnection = new RTCPeerConnection(this.config);
@@ -239,7 +238,9 @@ export class AppComponent implements OnInit, OnDestroy {
         console.log('Novo IceCandidate:');
         console.log(event.candidate.candidate);
         console.log(event.candidate);
-        this._hubConnection.invoke('AddIceCandidate', event.candidate);
+        if (event.candidate) {
+          this._hubConnection.invoke('AddIceCandidate', event.candidate);
+        }
       }
     };
 
@@ -248,6 +249,15 @@ export class AppComponent implements OnInit, OnDestroy {
       const audio = <HTMLAudioElement>document.getElementById('remoteAudioCtl');
       audio.srcObject = event.streams[0];
       audio.play();
+
+      console.warn('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
+      var receiver = this.localPeerConnection.getReceivers();
+      var sender = this.localPeerConnection.getSenders();
+      console.warn(receiver);
+      console.warn(sender);
+      console.warn(receiver[0].getContributingSources());
+      console.warn(receiver[0].getSynchronizationSources());
+      receiver[0].getStats().then((s) => console.warn(s));
     };
 
     this.localPeerConnection.ondatachannel = (event) => {
