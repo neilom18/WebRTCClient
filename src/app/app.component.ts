@@ -138,7 +138,7 @@ export class AppComponent implements OnInit, OnDestroy {
   public createConnection(): void {
     //console.log('Iniciada conexão com o signalR na url: https://localhost:5001/rtc');
     this._hubConnection = new HubConnectionBuilder()
-      .withUrl('https://192.168.13.135:5001/rtc')
+      .withUrl('https://localhost:5001/rtc')
       .build();
   }
 
