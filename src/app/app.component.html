@@ -1,0 +1,102 @@
+<div class="container">
+  <div class="center">
+    <form [formGroup]="userForm" (ngSubmit)="createUser()">
+      <fieldset>
+        <legend>Usuário</legend>
+        <label for="username">Nome</label>
+        <input type="text" id="username" formControlName="username">
+        <button type="submit">Cadastrar</button>
+      </fieldset>
+    </form>
+  </div>
+
+  <div class="center">
+    <form [formGroup]="roomForm" (ngSubmit)="createRoom()">
+      <fieldset>
+        <legend>Sala</legend>
+        <label for="roomName">Nome</label>
+        <input type="text" id="roomName" formControlName="roomName">
+        <button type="submit">Criar sala</button>
+      </fieldset>
+    </form>
+  </div>
+
+  <div *ngIf="me">
+    <h2>Usuário logado:</h2>
+    <p>Id: {{me.Id}}</p>
+    <p>Nome: {{me.Username}}</p>
+    <p>ConnectionId: {{me.ConnectionId}}</p>
+    <p>Em Ligção: {{me.IsInCall}}</p>
+    <p>Sala: {{me.Room?.Name}}</p>
+  </div>
+
+  <div *ngIf="users">
+    <h2>
+      Usuários
+    </h2>
+    <table>
+      <th>
+        Nome
+      </th>
+      <th>
+        Em Ligação
+      </th>
+      <th>
+        Sala
+      </th>
+      <tr *ngFor="let user of users">
+        <td>{{user.Username}}</td>
+        <td>{{user.IsInCall}}</td>
+        <td>{{user.Room?.Name}}</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="center" *ngIf="rooms">
+    <table>
+      <tr>
+        <th>
+          Id
+        </th>
+        <th>
+          Nome
+        </th>
+        <th>
+          Usuários
+        </th>
+        <th>
+          Ações
+        </th>
+      </tr>
+      <tr *ngFor="let room of rooms">
+        <td>
+          {{room.Id}}
+        </td>
+        <td>
+          {{room.Name}}
+        </td>
+        <td>
+          {{room.Users?.length}}
+        </td>
+        <td>
+          <button (click)="joinRoom(room.Id)">Entrar</button>
+          <button (click)="leaveRoom(room.Id)">Sair</button>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <audio controls autoplay="autoplay" id="audioCtl"></audio>
+  <audio controls autoplay="autoplay" id="remoteAudioCtl"></audio>
+
+  <div *ngIf="me && me.Room">
+    <h2>Sala</h2>
+    <table>
+      <tr><th>Nome</th></tr>
+      <tr *ngFor="let user of me.Room.Users">
+        <td>{{user.Username}}</td>
+      </tr>
+    </table>
+    <button (click)="startCall(me.Room.Id)">Chamar</button>
+  </div>
+</div>
