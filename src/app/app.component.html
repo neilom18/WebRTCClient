@@ -27,7 +27,7 @@
     <p>Nome: {{me.Username}}</p>
     <p>ConnectionId: {{me.ConnectionId}}</p>
     <p>Em Ligção: {{me.IsInCall}}</p>
-    <p>Sala: {{me.Room?.Name}}</p>
+    <!-- <p>Sala: {{me.Room?.Name}}</p> -->
   </div>
 
   <div *ngIf="users">
@@ -47,7 +47,12 @@
       <tr *ngFor="let user of users">
         <td>{{user.Username}}</td>
         <td>{{user.IsInCall}}</td>
-        <td>{{user.Room?.Name}}</td>
+        <!-- <td>{{user.Room?.Name}}</td  -->
+      </tr>
+      <tr>
+        <td>
+          <button (click)="joinRoom()">Entrar nas Salas</button>
+        </td>
       </tr>
     </table>
   </div>
@@ -79,7 +84,8 @@
           {{room.Users?.length}}
         </td>
         <td>
-          <button (click)="joinRoom(room.Id)">Entrar</button>
+          <button (click)="setMainRoom(room.Id)">MainRoom</button>
+          <button (click)="setSideRoom(room.Id)">SideRoom</button>
           <button (click)="leaveRoom(room.Id)">Sair</button>
         </td>
       </tr>
@@ -97,6 +103,5 @@
         <td>{{user.Username}}</td>
       </tr>
     </table>
-    <button (click)="startCall(me.Room.Id)">Chamar</button>
   </div>
 </div>

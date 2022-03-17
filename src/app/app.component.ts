@@ -105,8 +105,8 @@ export class AppComponent implements OnInit, OnDestroy {
     });
 
     this._hubConnection.on('UserJoinedRoom', (data) => {
-      // console.log('{on:UserJoinedRoom}');
-      // console.log(data);
+      //console.log('{on:UserJoinedRoom}');
+      console.log(data);
     });
 
     this._hubConnection.on('IceCandidateResult', (candidate) => {
@@ -138,24 +138,22 @@ export class AppComponent implements OnInit, OnDestroy {
   public createConnection(): void {
     //console.log('Iniciada conexão com o signalR na url: https://localhost:5001/rtc');
     this._hubConnection = new HubConnectionBuilder()
-      .withUrl('https://localhost:5001/rtc')
+      .withUrl('https://192.168.11.160:5001/rtc')
       .build();
   }
 
   public startConnection(): void {
     this._hubConnection.start()
-      .then(() => {
-        //console.log('Iniciada conexão com o signalR');
-      })
+    //console.log('Iniciada conexão com o signalR');
       .catch((e) => {
         console.log('Erro ao iniciar a conexão com o signalR: ' + e);
-      })
+      });
   }
 
   public createUser(): void {
     const username = this.userForm.value['username'];
     // console.log('Criando usuário:' + username);
-    this._hubConnection.invoke('CreateUser', username);
+    this._hubConnection.invoke('CreateUser', username)
   }
 
   public createRoom(): void {
@@ -164,12 +162,24 @@ export class AppComponent implements OnInit, OnDestroy {
     this._hubConnection.invoke('CreateRoom', roomName);
   }
 
-  public async joinRoom(roomId: string): Promise<void> {
-    console.log('Entrando na sala: ' + roomId);
+  public setMainRoom(roomId: string): void {
+    this._hubConnection.invoke('SetMainRoom', roomId);
+    console.log("Setando Room principal: " + roomId)
+  }
+
+  public setSideRoom(roomId: string): void {
+    this._hubConnection.invoke('SetSideRoom', roomId);
+    console.log("Setando Room de monitoramento")
+  }
+
+  public async joinRoom(): Promise<void> {
+    console.log('Entrando nas salas');
     await this.createRTCPeerConnection()
+    console.log('PeerConnection Criada');
     this.registerRTCEventHandlers();
-    this._hubConnection.invoke('JoinRoom', roomId)
+    this._hubConnection.invoke('JoinRoom')
       .then(() => {
+        console.log('A');
         this.getServerOffer();
       });
   }
@@ -201,7 +211,6 @@ export class AppComponent implements OnInit, OnDestroy {
       this.localPeerConnection.addTrack(track, localStream);
     });
   }
-
   public registerRTCEventHandlers(): void {
     //console.log('Registrando eventos de RTC');
 
